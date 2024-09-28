@@ -5,6 +5,63 @@
 #define MAX_ATTEMPTS 5
 #define ATTEMPT_DELAY 100 // milliseconds
 
+BOOL IsUnwantedClass(const char *className) {
+    for (size_t i = 0; i < sizeof(unwantedClasses) / sizeof(unwantedClasses[0]); i++) {
+        if (strcmp(className, unwantedClasses[i]) == 0) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+    // skip invisible windows
+    if (!IsWindowVisible(hwnd)) {
+        return TRUE;
+    }
+
+    // skip windows without any size
+    RECT rect;
+    if (!GetWindowRect(hwnd, &rect)) {
+        return TRUE;
+    }
+    if (rect.right - rect.left <= 0 || rect.bottom - rect.top <= 0) {
+        return TRUE;
+    }
+
+    // skip windows with certain styles (like tool windows)
+    LONG style = GetWindowLong(hwnd, GWL_STYLE);
+    LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+    // some system windows can be children even though its called through
+    // EnumWindows
+    if ((style & WS_CHILD) || (exStyle & WS_EX_TOOLWINDOW)) {
+        return TRUE;
+    }
+
+    // get the window title
+    char title[256];
+    GetWindowTextA(hwnd, title, sizeof(title));
+
+    // skip windows without a title
+    if (strlen(title) == 0) {
+        return TRUE;
+    }
+
+    char className[256];
+    GetClassNameA(hwnd, className, sizeof(className));
+
+    if (IsUnwantedClass(className)) {
+        return TRUE;
+    }
+
+
+    // likely a "real" window
+    printf("Window Handle: %p, Title: %s, className: %s\n", hwnd, title, className);
+
+    return TRUE;
+}
+
 // windows can be quite stubborn about focus management
 // After a lot of trial and errors I found out that retrying is reliable
 void raise() {
