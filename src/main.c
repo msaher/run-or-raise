@@ -5,6 +5,10 @@
 #define MAX_ATTEMPTS 5
 #define ATTEMPT_DELAY 100 // milliseconds
 
+const char *unwantedClasses[] = {
+    "Windows.UI.Core.CoreWindow", // to get rid of "Microsoft Text Input Application"
+};
+
 BOOL IsUnwantedClass(const char *className) {
     for (size_t i = 0; i < sizeof(unwantedClasses) / sizeof(unwantedClasses[0]); i++) {
         if (strcmp(className, unwantedClasses[i]) == 0) {
