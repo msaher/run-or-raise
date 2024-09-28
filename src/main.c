@@ -68,8 +68,12 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 
 // windows can be quite stubborn about focus management
 // After a lot of trial and errors I found out that retrying is reliable
-void raise() {
-    HWND hwnd = FindWindow("MozillaWindowClass", NULL);
+void raise(HWND hwnd) {
+
+    if (hwnd == NULL) {
+        hwnd = FindWindow("MozillaWindowClass", NULL);
+    }
+
     if (hwnd == NULL) {
         fprintf(stderr, "Failed to find Firefox window handle\n");
         return;
@@ -99,20 +103,18 @@ void raise() {
         SetActiveWindow(hwnd);
         SetFocus(hwnd);
 
-        // RedrawWindow(hwnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
-
         // Detach threads
         AttachThreadInput(currentThreadId, firefoxThreadId, FALSE);
 
         // Wait and check focus
         Sleep(ATTEMPT_DELAY);
         if (GetForegroundWindow() == hwnd) {
-            printf("Successfully set focus to Firefox window on attempt %d\n", attempt + 1);
+            printf("Successfully set focus to window on attempt %d\n", attempt + 1);
             return;
         }
     }
 
-    fprintf(stderr, "Warning: Failed to set focus to Firefox window after %d attempts\n", MAX_ATTEMPTS);
+    fprintf(stderr, "Error: Failed to set focus to window after %d attempts\n", MAX_ATTEMPTS);
 }
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
@@ -125,8 +127,8 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HC_ACTION && keyDown) {
         tagKBDLLHOOKSTRUCT *kbd = (tagKBDLLHOOKSTRUCT *)lParam;
         if (kbd->vkCode == VK_F9) {
-            raise();
-            return 1;
+            raise(NULL);
+            return 1; // swallow shortcut
         }
     }
 
