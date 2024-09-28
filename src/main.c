@@ -18,7 +18,6 @@ BOOL IsUnwantedClass(const char *className) {
     return FALSE;
 }
 
-
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
     // skip invisible windows
     if (!IsWindowVisible(hwnd)) {
@@ -82,31 +81,28 @@ void raise(HWND hwnd) {
     DWORD currentThreadId = GetCurrentThreadId();
     DWORD firefoxThreadId = GetWindowThreadProcessId(hwnd, NULL);
 
-    // Force our window to the foreground first
-    // EnumWindows(EnumWindowsProc, 0);
-
     for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-        // Attach threads
+        // attach threads
         AttachThreadInput(currentThreadId, firefoxThreadId, TRUE);
 
-        // Show and restore window
+        // show and restore window
         ShowWindow(hwnd, SW_SHOW);
         if (IsIconic(hwnd)) {
             ShowWindow(hwnd, SW_RESTORE);
         }
 
-        // Bring window to foreground
+        // bring window to foreground
         SetForegroundWindow(hwnd);
         BringWindowToTop(hwnd);
 
-        // Set focus
+        // set focus
         SetActiveWindow(hwnd);
         SetFocus(hwnd);
 
-        // Detach threads
+        // detach threads
         AttachThreadInput(currentThreadId, firefoxThreadId, FALSE);
 
-        // Wait and check focus
+        // wait and check focus
         Sleep(ATTEMPT_DELAY);
         if (GetForegroundWindow() == hwnd) {
             printf("Successfully set focus to window on attempt %d\n", attempt + 1);
@@ -122,7 +118,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         return CallNextHookEx(NULL, nCode, wParam, lParam);
     }
 
-    // Check for WM_KEYDOWN or WM_SYSKEYDOWN only, to avoid duplicate prints on key release
+    // check for WM_KEYDOWN or WM_SYSKEYDOWN only, to avoid duplicate prints on key release
     bool keyDown = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
     if (nCode == HC_ACTION && keyDown) {
         tagKBDLLHOOKSTRUCT *kbd = (tagKBDLLHOOKSTRUCT *)lParam;
@@ -153,7 +149,7 @@ void messageLoop() {
 
 int main() {
 
-    messageLoop();
+    EnumWindows(EnumWindowsProc, 0);
 
     return 0;
 }
