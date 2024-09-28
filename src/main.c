@@ -7,20 +7,20 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         return CallNextHookEx(NULL, nCode, wParam, lParam);
     }
 
-    // we dont care about the alt key information from wParam
+    // Check for WM_KEYDOWN or WM_SYSKEYDOWN only, to avoid duplicate prints on key release
+    bool keyDown = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
+    if (nCode == HC_ACTION && keyDown) {
+        tagKBDLLHOOKSTRUCT *kbd = (tagKBDLLHOOKSTRUCT *)lParam;
 
-    if (nCode == HC_ACTION ) {
-        tagKBDLLHOOKSTRUCT *kbd = (tagKBDLLHOOKSTRUCT *) lParam;
         if (kbd->vkCode == VK_TAB) {
             printf("You pressed tab\n");
         } else {
-            printf("you pressed something that has value %x\n", wParam);
+            printf("You pressed something that has value %x\n", kbd->vkCode);
         }
     }
 
     return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
-
 
 int main() {
 
