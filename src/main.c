@@ -11,11 +11,9 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     bool keyDown = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
     if (nCode == HC_ACTION && keyDown) {
         tagKBDLLHOOKSTRUCT *kbd = (tagKBDLLHOOKSTRUCT *)lParam;
-
-        if (kbd->vkCode == VK_TAB) {
-            printf("You pressed tab\n");
-        } else {
-            printf("You pressed something that has value %x\n", kbd->vkCode);
+        if (kbd->vkCode == VK_F9) {
+            raise();
+            return 1;
         }
     }
 
