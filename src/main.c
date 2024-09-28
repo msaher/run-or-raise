@@ -18,6 +18,50 @@ BOOL IsUnwantedClass(const char *className) {
     return FALSE;
 }
 
+// an actual window is a window that's not stupid
+BOOL isActualWindow(HWND hwnd, LPARAM lParam) {
+    // skip invisible windows
+    if (!IsWindowVisible(hwnd)) {
+        return FALSE;
+    }
+
+    // skip windows without any size
+    RECT rect;
+    if (!GetWindowRect(hwnd, &rect)) {
+        return FALSE;
+    }
+    if (rect.right - rect.left <= 0 || rect.bottom - rect.top <= 0) {
+        return FALSE;
+    }
+
+    // skip windows with certain styles (like tool windows)
+    LONG style = GetWindowLong(hwnd, GWL_STYLE);
+    LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+    // some system windows can be children even though its called through
+    // EnumWindows
+    if ((style & WS_CHILD) || (exStyle & WS_EX_TOOLWINDOW)) {
+        return FALSE;
+    }
+
+    // get the window title
+    char title[256];
+    GetWindowTextA(hwnd, title, sizeof(title));
+
+    // skip windows without a title
+    if (strlen(title) == 0) {
+        return FALSE;
+    }
+
+    char className[256];
+    GetClassNameA(hwnd, className, sizeof(className));
+
+    if (IsUnwantedClass(className)) {
+        return FALSE;
+    }
+
+    return FALSE;
+}
+
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
     // skip invisible windows
     if (!IsWindowVisible(hwnd)) {
