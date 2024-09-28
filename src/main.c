@@ -27,7 +27,7 @@ int main() {
     HHOOK hook = SetWindowsHookExA(WH_KEYBOARD_LL, LowLevelKeyboardProc, NULL, 0);
 
     if (hook == NULL) {
-        fprintf(stderr, "failed to set hook: %s", GetLastError());
+        fprintf(stderr, "failed to set hook: %ld", GetLastError());
         return 1;
     }
 
