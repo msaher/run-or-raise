@@ -163,7 +163,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     }
 
     // check for WM_KEYDOWN or WM_SYSKEYDOWN only, to avoid duplicate prints on key release
-    bool keyDown = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
+    BOOL keyDown = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
     if (nCode == HC_ACTION && keyDown) {
         tagKBDLLHOOKSTRUCT *kbd = (tagKBDLLHOOKSTRUCT *)lParam;
         if (kbd->vkCode == VK_F9) {
