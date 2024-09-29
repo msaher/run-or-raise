@@ -1,5 +1,3 @@
-#include "WindowsSucks.h"
-#include "globals.h"
 #include <algorithm>
 #include <iostream>
 #include <memory>
@@ -11,6 +9,11 @@
 
 #define MAX_ATTEMPTS 5
 #define ATTEMPT_DELAY 100 // milliseconds
+
+struct HwndClass {
+  HWND hwnd;
+  std::string className;
+};
 
 // might want to use GetWindow() to add raise and lower functionality
 // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindow
@@ -238,87 +241,33 @@ void messageLoop() {
   UnhookWindowsHookEx(hook);
 }
 
-LRESULT CALLBACK cbtProc(int nCode, WPARAM wParam, LPARAM lParam) {
-
-  if (nCode != HCBT_CREATEWND || nCode != HCBT_DESTROYWND) {
-    return CallNextHookEx(NULL, nCode, wParam, lParam);
-  }
-
-  HWND hwnd = (HWND)wParam;
-
-  if (nCode == HCBT_CREATEWND) {
-    char className[256];
-    GetClassNameA(hwnd, className, sizeof(className));
-    gwinVec->push_back(HwndClass{.hwnd = hwnd, .className = className});
-  } else {
-    std::remove_if(
-        gwinVec->begin(), gwinVec->end(),
-        [hwnd](HwndClass &hwndClass) { return hwndClass.hwnd == hwnd; });
-  }
-
-  printf("After CBTProc: \n");
-  for (auto &item : *gwinVec) {
-    printf("Handle: %p, class: %s\n", item.hwnd, item.className.c_str());
-  }
-
-  return CallNextHookEx(NULL, nCode, wParam, lParam);
-}
-
-HHOOK g_hook;
-
-// TODO: fix race conditions
-void listenForWindows() {
-
-    HMODULE dll = LoadLibraryA("WindowsSucks.dll");
-
-    if (dll == NULL) {
-        fprintf(stderr, "failed to load dll: ");
-        printLastError();
-        return;
-    }
-
-    FARPROC proc = GetProcAddress(dll, "windowProc");
-    if (proc == NULL) {
-        fprintf(stderr, "failed to load proc: ");
-        printLastError();
-        return;
-    }
-
-    auto windowProc =
-        reinterpret_cast<LRESULT(CALLBACK *)(int, WPARAM, LPARAM)>(proc);
-
-    HHOOK g_hook = SetWindowsHookExA(WH_CALLWNDPROC, windowProc, dll, 0);
-    if (g_hook == NULL) {
-        fprintf(stderr, "failed to set hook: ");
-        printLastError();
-        return;
-    }
-
-    UnhookWindowsHookEx(g_hook);
-    FreeLibrary(dll);
-}
-
 int main() {
-    gwinVec = std::make_unique<std::vector<HwndClass>>();
-    EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(gwinVec.get()));
+
+    auto winVec = std::make_unique<std::vector<HwndClass>>();
+    EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(winVec.get()));
 
     printf("initial windows:\n");
-    for (auto &item : *gwinVec) {
+    for (auto &item : *winVec) {
         printf("Handle: %p, class: %s\n", item.hwnd, item.className.c_str());
     }
-
-    listenForWindows();
 
     while(true) {
 
         printf("List of windows:\n");
-        for (size_t i = 0; i < gwinVec->size(); i++) {
-            printf("n: %lld, Handle: %p, class: %s\n", i, (*gwinVec)[i].hwnd, (*gwinVec)[i].className.c_str());
+        for (size_t i = 0; i < winVec->size(); i++) {
+            printf("n: %lld, Handle: %p, class: %s\n", i, (*winVec)[i].hwnd, (*winVec)[i].className.c_str());
         }
 
         printf("\nSleeping...");
         Sleep(1000);
     }
+
+    // I press button
+    // windows get populated in vector
+    // I search for first window class that has this
+    // focus on it
+    // If not same then go to next won
+    //
 
     return 0;
 }
