@@ -5,4 +5,3 @@
 #endif
 
 extern "C" WINDOWS_SUCKS_API int add(int a, int b);
-
