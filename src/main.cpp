@@ -264,16 +264,53 @@ LRESULT CALLBACK cbtProc(int nCode, WPARAM wParam, LPARAM lParam) {
     return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
 
+HHOOK g_hook;
+
 // TODO: fix race conditions
-int listenForWindows() {
-    return 0;
+void listenForWindows() {
+
+    HMODULE dll = LoadLibraryA("WindowsSucks2.dll");
+
+    if (dll == NULL) {
+        fprintf(stderr, "failed to load dll: ");
+        printLastError();
+        return;
+    }
+
+    FARPROC proc = GetProcAddress(dll, "windowProc");
+    if (proc == NULL) {
+        fprintf(stderr, "failed to load proc: ");
+        printLastError();
+        return;
+    }
+
+    auto windowProc = reinterpret_cast<LRESULT (CALLBACK *)(int, WPARAM, LPARAM)>(proc);
+
+    HHOOK g_hook = SetWindowsHookExA(WH_CALLWNDPROC, windowProc, dll, 0);
+    if (g_hook == NULL) {
+        fprintf(stderr, "failed to set hook: ");
+        printLastError();
+        return;
+    }
+
+    // MSG msg;
+    // while (GetMessage(&msg, NULL, 0, 0)) {
+    //     printf("Got message\n");
+    //     TranslateMessage(&msg);
+    //     DispatchMessage(&msg);
+    // }
+
+    getchar(); // Wait for user input
+
+    UnhookWindowsHookEx(g_hook);
+    FreeLibrary(dll);
 }
 
 int main() {
-    // gwinVec = std::make_unique<std::vector<HwndClass>>();
-    // EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(gwinVec.get()));
-    //
-    // listenForWindows();
+    gwinVec = std::make_unique<std::vector<HwndClass>>();
+    EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(gwinVec.get()));
+
+    listenForWindows();
 
     return 0;
 }

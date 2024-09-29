@@ -4,4 +4,9 @@
 #define WINDOWS_SUCKS_API __declspec(dllimport)
 #endif
 
-extern "C" WINDOWS_SUCKS_API int add(int a, int b);
+#include <windows.h>
+
+// extern "C" LRESULT CALLBACK cbtProc(int nCode, WPARAM wParam, LPARAM lParam);
+// extern "C" LRESULT CALLBACK shellProc(int nCode, WPARAM wParam, LPARAM lParam);
+extern "C" LRESULT CALLBACK windowProc(int nCode, WPARAM wParam, LPARAM lParam);
+
