@@ -111,6 +111,24 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 
 // windows can be quite stubborn about focus management
 // After a lot of trial and errors I found out that retrying is reliable
+
+struct SearchData {
+    LPCSTR className;
+    HWND currentWindow;
+    HWND foundWindow;
+};
+
+void nextHandle(LPCSTR className) {
+    std::vector<HWND> vec;
+    // this breaks C++ compatability
+    // I did it for laughs
+    struct SearchData data = {
+        .className = className,
+        .currentWindow = GetForegroundWindow(),
+        .foundWindow = NULL,
+    };
+
+}
 void raise(HWND hwnd) {
 
     if (hwnd == NULL) {
