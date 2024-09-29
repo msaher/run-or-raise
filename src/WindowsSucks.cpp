@@ -41,33 +41,31 @@ extern "C" LRESULT CALLBACK windowProc(int nCode, WPARAM wParam, LPARAM lParam) 
 
         switch (pMsg->message) {
             case WM_CREATE:
-                *NULL;
-                printf("WM_CREATE: HWND = %p", pMsg->hwnd);
-                fflush(stdout);
+                char className[256];
+                GetClassNameA(pMsg->hwnd, className, sizeof(className));
+                gwinVec->push_back(HwndClass{.hwnd = pMsg->hwnd, .className = className});
+
+                gwinVec->push_back(HwndClass{.hwnd = pMsg->hwnd, .className = className});
                 break;
             case WM_DESTROY:
-                printf("WM_DESTROY: HWND = %p", pMsg->hwnd);
-                fflush(stdout);
-                break;
-            case WM_SETFOCUS:
-                printf("WM_SETFOCUS: HWND = %p", pMsg->hwnd);
-                fflush(stdout);
+                std::remove_if(
+                    gwinVec->begin(), gwinVec->end(),
+                    [pMsg](HwndClass &hwndClass) { return hwndClass.hwnd == pMsg->hwnd; });
                 break;
         }
     }
-
     return CallNextHookEx(g_hook, nCode, wParam, lParam);
 }
 
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
-    switch (ul_reason_for_call) {
-        case DLL_PROCESS_ATTACH:
-            g_hook = NULL;
-            break;
-        case DLL_THREAD_ATTACH:
-        case DLL_THREAD_DETACH:
-        case DLL_PROCESS_DETACH:
-            break;
-    }
-    return TRUE;
-}
+// BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
+//     switch (ul_reason_for_call) {
+//         case DLL_PROCESS_ATTACH:
+//             g_hook = NULL;
+//             break;
+//         case DLL_THREAD_ATTACH:
+//         case DLL_THREAD_DETACH:
+//         case DLL_PROCESS_DETACH:
+//             break;
+//     }
+//     return TRUE;
+// }

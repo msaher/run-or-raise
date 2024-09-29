@@ -1,13 +1,13 @@
-#include <stdio.h>
-#include <windows.h>
-#include <winuser.h>
-#include <vector>
-#include <memory>
-#include <string>
-#include <algorithm>
-#include <iostream>
 #include "WindowsSucks.h"
 #include "globals.h"
+#include <algorithm>
+#include <iostream>
+#include <memory>
+#include <stdio.h>
+#include <string>
+#include <vector>
+#include <windows.h>
+#include <winuser.h>
 
 #define MAX_ATTEMPTS 5
 #define ATTEMPT_DELAY 100 // milliseconds
@@ -31,19 +31,20 @@ BOOL isUnwantedClass(const char *className) {
 }
 
 void printLastError() {
-    DWORD errorMessageID = GetLastError();
-    if (errorMessageID == 0) {
-        return; // No error
-    }
+  DWORD errorMessageID = GetLastError();
+  if (errorMessageID == 0) {
+    return; // No error
+  }
 
-    LPSTR messageBuffer = NULL;
-    FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPSTR)&messageBuffer, 0, NULL);
+  LPSTR messageBuffer = NULL;
+  FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                     FORMAT_MESSAGE_IGNORE_INSERTS,
+                 NULL, errorMessageID,
+                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                 (LPSTR)&messageBuffer, 0, NULL);
 
-    fprintf(stderr, "Error: %s\n", messageBuffer);
-    LocalFree(messageBuffer);
+  fprintf(stderr, "Error: %s\n", messageBuffer);
+  LocalFree(messageBuffer);
 }
 
 // an actual window is a window that's not stupid
@@ -140,18 +141,17 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 // std::vector<HandleClass> v;
 
 BOOL CALLBACK PopulateWinVec(HWND hwnd, LPARAM lParam) {
-    if (isActualWindow(hwnd)) {
-        auto v = reinterpret_cast<std::vector<HwndClass>*>(lParam);
+  if (isActualWindow(hwnd)) {
+    auto v = reinterpret_cast<std::vector<HwndClass> *>(lParam);
 
-        char className[256];
-        GetClassNameA(hwnd, className, sizeof(className));
+    char className[256];
+    GetClassNameA(hwnd, className, sizeof(className));
 
-        struct HwndClass data = {.hwnd = hwnd, .className = className};
-        v->push_back(data);
+    struct HwndClass data = {.hwnd = hwnd, .className = className};
+    v->push_back(data);
+  }
 
-    }
-
-    return TRUE;
+  return TRUE;
 }
 
 // windows can be quite stubborn about focus management
@@ -240,28 +240,28 @@ void messageLoop() {
 
 LRESULT CALLBACK cbtProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
-    if (nCode != HCBT_CREATEWND || nCode != HCBT_DESTROYWND) {
-        return CallNextHookEx(NULL, nCode, wParam, lParam);
-    }
-
-    HWND hwnd = (HWND) wParam;
-
-    if (nCode == HCBT_CREATEWND) {
-        char className[256];
-        GetClassNameA(hwnd, className, sizeof(className));
-        gwinVec->push_back(HwndClass {.hwnd = hwnd, .className = className});
-    } else {
-        std::remove_if(gwinVec->begin(), gwinVec->end(), [hwnd](HwndClass& hwndClass) {
-            return hwndClass.hwnd == hwnd;
-        });
-    }
-
-    printf("After CBTProc: \n");
-    for (auto &item : *gwinVec) {
-        printf("Handle: %p, class: %s\n", item.hwnd, item.className.c_str());
-    }
-
+  if (nCode != HCBT_CREATEWND || nCode != HCBT_DESTROYWND) {
     return CallNextHookEx(NULL, nCode, wParam, lParam);
+  }
+
+  HWND hwnd = (HWND)wParam;
+
+  if (nCode == HCBT_CREATEWND) {
+    char className[256];
+    GetClassNameA(hwnd, className, sizeof(className));
+    gwinVec->push_back(HwndClass{.hwnd = hwnd, .className = className});
+  } else {
+    std::remove_if(
+        gwinVec->begin(), gwinVec->end(),
+        [hwnd](HwndClass &hwndClass) { return hwndClass.hwnd == hwnd; });
+  }
+
+  printf("After CBTProc: \n");
+  for (auto &item : *gwinVec) {
+    printf("Handle: %p, class: %s\n", item.hwnd, item.className.c_str());
+  }
+
+  return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
 
 HHOOK g_hook;
@@ -269,7 +269,7 @@ HHOOK g_hook;
 // TODO: fix race conditions
 void listenForWindows() {
 
-    HMODULE dll = LoadLibraryA("WindowsSucks2.dll");
+    HMODULE dll = LoadLibraryA("WindowsSucks.dll");
 
     if (dll == NULL) {
         fprintf(stderr, "failed to load dll: ");
@@ -284,7 +284,8 @@ void listenForWindows() {
         return;
     }
 
-    auto windowProc = reinterpret_cast<LRESULT (CALLBACK *)(int, WPARAM, LPARAM)>(proc);
+    auto windowProc =
+        reinterpret_cast<LRESULT(CALLBACK *)(int, WPARAM, LPARAM)>(proc);
 
     HHOOK g_hook = SetWindowsHookExA(WH_CALLWNDPROC, windowProc, dll, 0);
     if (g_hook == NULL) {
@@ -292,15 +293,6 @@ void listenForWindows() {
         printLastError();
         return;
     }
-
-    // MSG msg;
-    // while (GetMessage(&msg, NULL, 0, 0)) {
-    //     printf("Got message\n");
-    //     TranslateMessage(&msg);
-    //     DispatchMessage(&msg);
-    // }
-
-    getchar(); // Wait for user input
 
     UnhookWindowsHookEx(g_hook);
     FreeLibrary(dll);
@@ -310,7 +302,23 @@ int main() {
     gwinVec = std::make_unique<std::vector<HwndClass>>();
     EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(gwinVec.get()));
 
+    printf("initial windows:\n");
+    for (auto &item : *gwinVec) {
+        printf("Handle: %p, class: %s\n", item.hwnd, item.className.c_str());
+    }
+
     listenForWindows();
+
+    while(true) {
+
+        printf("List of windows:\n");
+        for (size_t i = 0; i < gwinVec->size(); i++) {
+            printf("n: %lld, Handle: %p, class: %s\n", i, (*gwinVec)[i].hwnd, (*gwinVec)[i].className.c_str());
+        }
+
+        printf("\nSleeping...");
+        Sleep(1000);
+    }
 
     return 0;
 }
