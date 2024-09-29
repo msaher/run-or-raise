@@ -4,6 +4,9 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <algorithm>
+#include <iostream>
+#include "WindowsSucks.h"
 
 #define MAX_ATTEMPTS 5
 #define ATTEMPT_DELAY 100 // milliseconds
@@ -16,7 +19,15 @@ const char *unwantedClasses[] = {
                                   // Application"
 };
 
-BOOL IsUnwantedClass(const char *className) {
+struct HwndClass {
+    HWND hwnd;
+    std::string className;
+};
+
+std::unique_ptr<std::vector<HwndClass>> gwinVec;
+HHOOK g_hook;
+
+BOOL isUnwantedClass(const char *className) {
   for (size_t i = 0; i < sizeof(unwantedClasses) / sizeof(unwantedClasses[0]);
        i++) {
     if (strcmp(className, unwantedClasses[i]) == 0) {
@@ -24,6 +35,22 @@ BOOL IsUnwantedClass(const char *className) {
     }
   }
   return FALSE;
+}
+
+void printLastError() {
+    DWORD errorMessageID = GetLastError();
+    if (errorMessageID == 0) {
+        return; // No error
+    }
+
+    LPSTR messageBuffer = NULL;
+    FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPSTR)&messageBuffer, 0, NULL);
+
+    fprintf(stderr, "Error: %s\n", messageBuffer);
+    LocalFree(messageBuffer);
 }
 
 // an actual window is a window that's not stupid
@@ -63,7 +90,7 @@ BOOL isActualWindow(HWND hwnd) {
   char className[256];
   GetClassNameA(hwnd, className, sizeof(className));
 
-  if (IsUnwantedClass(className)) {
+  if (isUnwantedClass(className)) {
     return FALSE;
   }
 
@@ -106,7 +133,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
   char className[256];
   GetClassNameA(hwnd, className, sizeof(className));
 
-  if (IsUnwantedClass(className)) {
+  if (isUnwantedClass(className)) {
     return TRUE;
   }
 
@@ -116,11 +143,6 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 
   return TRUE;
 }
-
-struct HwndClass {
-    HWND hwnd;
-    std::string className;
-};
 
 // std::vector<HandleClass> v;
 
@@ -223,12 +245,104 @@ void messageLoop() {
   UnhookWindowsHookEx(hook);
 }
 
-int main() {
-    auto v = std::make_unique<std::vector<HwndClass>>();
-    EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(v.get()));
-    for (auto &item : *v) {
+LRESULT CALLBACK cbtProc(int nCode, WPARAM wParam, LPARAM lParam) {
+
+    if (nCode != HCBT_CREATEWND || nCode != HCBT_DESTROYWND) {
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
+    }
+
+    HWND hwnd = (HWND) wParam;
+
+    if (nCode == HCBT_CREATEWND) {
+        char className[256];
+        GetClassNameA(hwnd, className, sizeof(className));
+        gwinVec->push_back(HwndClass {.hwnd = hwnd, .className = className});
+    } else {
+        std::remove_if(gwinVec->begin(), gwinVec->end(), [hwnd](HwndClass& hwndClass) {
+            return hwndClass.hwnd == hwnd;
+        });
+    }
+
+    printf("After CBTProc: \n");
+    for (auto &item : *gwinVec) {
         printf("Handle: %p, class: %s\n", item.hwnd, item.className.c_str());
     }
+
+    return CallNextHookEx(NULL, nCode, wParam, lParam);
+}
+
+// Callback function for the hook
+LRESULT CALLBACK CallWndProc(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (nCode >= 0) {
+        CWPSTRUCT* pMsg = reinterpret_cast<CWPSTRUCT*>(lParam);
+
+        switch (pMsg->message) {
+            case WM_CREATE:
+                std::cout << "WM_CREATE: HWND = " << pMsg->hwnd << std::endl;
+                break;
+            case WM_CLOSE:
+                std::cout << "WM_CLOSE: HWND = " << pMsg->hwnd << std::endl;
+                break;
+            case WM_SETFOCUS:
+                std::cout << "WM_SETFOCUS: HWND = " << pMsg->hwnd << std::endl;
+                break;
+        }
+    }
+
+    return CallNextHookEx(g_hook, nCode, wParam, lParam);
+}
+
+
+// TODO: fix race conditions
+int listenForWindows() {
+    // HHOOK hook = SetWindowsHookExA(WH_CALLWNDPROC, cbtProc, NULL, 0);
+    //
+    // if (hook == NULL) {
+    //     fprintf(stderr, "failed to set hook: ");
+    //     printLastError();
+    //     return;
+    // }
+    //
+    // MSG msg;
+    // while (GetMessage(&msg, NULL, 0, 0)) {
+    //     TranslateMessage(&msg);
+    //     DispatchMessage(&msg);
+    // }
+    //
+    //
+    // UnhookWindowsHookEx(hook);
+
+    // Install the hook
+    g_hook = SetWindowsHookEx(WH_CALLWNDPROC, CallWndProc, NULL, 0);
+
+    if (g_hook == NULL) {
+        std::cerr << "Failed to install hook. Error code: " << GetLastError() << std::endl;
+        return 1;
+    }
+
+    std::cout << "Hook installed. Monitoring windows..." << std::endl;
+
+    // Message loop
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    // Uninstall the hook
+    UnhookWindowsHookEx(g_hook);
+
+    return 0;
+}
+
+int main() {
+    // gwinVec = std::make_unique<std::vector<HwndClass>>();
+    // EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(gwinVec.get()));
+    //
+    // listenForWindows();
+
+    int res = add(1, 2);
+    printf("result = %d\n", res);
 
     return 0;
 }
