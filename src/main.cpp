@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <windows.h>
 #include <winuser.h>
+#include <vector>
+#include <memory>
+#include <string>
 
 #define MAX_ATTEMPTS 5
 #define ATTEMPT_DELAY 100 // milliseconds
@@ -24,7 +27,7 @@ BOOL IsUnwantedClass(const char *className) {
 }
 
 // an actual window is a window that's not stupid
-BOOL isActualWindow(HWND hwnd, LPARAM lParam) {
+BOOL isActualWindow(HWND hwnd) {
   // skip invisible windows
   if (!IsWindowVisible(hwnd)) {
     return FALSE;
@@ -64,7 +67,7 @@ BOOL isActualWindow(HWND hwnd, LPARAM lParam) {
     return FALSE;
   }
 
-  return FALSE;
+  return TRUE;
 }
 
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
@@ -114,24 +117,30 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
   return TRUE;
 }
 
-// windows can be quite stubborn about focus management
-// After a lot of trial and errors I found out that retrying is reliable
-
-struct HandleClass {
-    HWND handle;
-    LPCSTR className;
+struct HwndClass {
+    HWND hwnd;
+    std::string className;
 };
 
 // std::vector<HandleClass> v;
 
 BOOL CALLBACK PopulateWinVec(HWND hwnd, LPARAM lParam) {
-    if (!isActualWindow) {
-        return TRUE;
+    if (isActualWindow(hwnd)) {
+        auto v = reinterpret_cast<std::vector<HwndClass>*>(lParam);
+
+        char className[256];
+        GetClassNameA(hwnd, className, sizeof(className));
+
+        struct HwndClass data = {.hwnd = hwnd, .className = className};
+        v->push_back(data);
+
     }
 
-    std::vector<HandleClass> *v = (std::vector<HandleClass>
-
+    return TRUE;
 }
+
+// windows can be quite stubborn about focus management
+// After a lot of trial and errors I found out that retrying is reliable
 void raise(HWND hwnd) {
 
   if (hwnd == NULL) {
@@ -215,8 +224,11 @@ void messageLoop() {
 }
 
 int main() {
+    auto v = std::make_unique<std::vector<HwndClass>>();
+    EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(v.get()));
+    for (auto &item : *v) {
+        printf("Handle: %p, class: %s\n", item.hwnd, item.className.c_str());
+    }
 
-  EnumWindows(EnumWindowsProc, 0);
-
-  return 0;
+    return 0;
 }
