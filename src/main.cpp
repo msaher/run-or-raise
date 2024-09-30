@@ -30,12 +30,34 @@ enum KbdModifier {
     ALT = 1 << 2,
 };
 
+// overload operator==() so it plays nicely with maps
+class KbdShortcut {
+public:
+    BYTE flags;
+    DWORD key;
+
+    bool operator==(const KbdShortcut &rhs) const;
+};
+
+bool KbdShortcut::operator==(const KbdShortcut &rhs) const {
+    return this->flags == rhs.flags && this->key == rhs.key;
+}
+
+// specialize std::hash to please std::unordered_map
+template <>
+struct std::hash<KbdShortcut> {
+    std::size_t operator()(const KbdShortcut &k) const {
+        // XOR and shift values to minimize collisions
+        return hash<BYTE>()(k.flags) ^ (hash<int>()(k.key) << 1);
+    }
+};
+
 const char *unwantedClasses[] = {
     "Windows.UI.Core.CoreWindow", // to get rid of "Microsoft Text Input
     // Application"
 };
 
-std::unordered_map<int, CmdClass> g_keymaps;
+std::unordered_map<KbdShortcut, CmdClass> g_keymaps;
 std::vector<HwndClass> g_winVec;
 
 BYTE getActiveModifiers() {
@@ -246,11 +268,15 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(&g_winVec));
 
     tagKBDLLHOOKSTRUCT *kbd = (tagKBDLLHOOKSTRUCT *)lParam;
-    auto iter = g_keymaps.find(kbd->vkCode);
+    auto currentShortcut = KbdShortcut { getActiveModifiers(), kbd->vkCode };
+    auto iter = g_keymaps.find(currentShortcut);
+
     if (iter == g_keymaps.end()) {
         return CallNextHookEx(NULL, nCode, wParam, lParam);
     } else {
-        runOrRaise(g_winVec, const_cast<char *>(iter->second.cmdLine.c_str()), iter->second.className.c_str());
+        printf("flags: %x, key: %lx\n", currentShortcut.flags, currentShortcut.key);
+        auto cmdClass = iter->second;
+        runOrRaise(g_winVec, const_cast<char *>(cmdClass.cmdLine.c_str()), cmdClass.className.c_str());
         return 1; // swallow
     }
 
@@ -275,7 +301,8 @@ void messageLoop() {
 int main() {
     EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(&g_winVec));
     // g_keymaps[VK_F9] = CmdClass {"notepad.exe", "Notepad"}; // notepad
-    g_keymaps[VK_F9] = CmdClass {"wt.exe", "CASCADIA_HOSTING_WINDOW_CLASS"}; // windows terminal
+    auto shortcut = KbdShortcut {CTRL, VK_F9};
+    g_keymaps[shortcut] = CmdClass {"wt.exe", "CASCADIA_HOSTING_WINDOW_CLASS"}; // windows terminal
 
     printf("initial windows:\n");
     for (auto &item : g_winVec) {
