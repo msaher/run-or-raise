@@ -38,6 +38,24 @@ const char *unwantedClasses[] = {
 std::unordered_map<int, CmdClass> g_keymaps;
 std::vector<HwndClass> g_winVec;
 
+BYTE getActiveModifiers() {
+    BYTE res = 0;
+    if (GetKeyState(VK_CONTROL) < 0) {
+        res |= CTRL;
+    }
+
+    if (GetKeyState(VK_SHIFT) < 0) {
+        res |= SHIFT;
+    }
+
+    if (GetKeyState(VK_MENU) < 0) {
+        res |= ALT;
+    }
+
+    return res;
+}
+
+
 
 BOOL isUnwantedClass(const char *className) {
     for (size_t i = 0; i < sizeof(unwantedClasses) / sizeof(unwantedClasses[0]);
