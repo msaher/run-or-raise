@@ -21,8 +21,6 @@ struct CmdClass {
     std::string className;
 };
 
-// might want to use GetWindow() to add raise and lower functionality
-// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindow
 enum KbdModifier {
     NONE = 0,
     CTRL = 1 << 0,
@@ -76,8 +74,6 @@ BYTE getActiveModifiers() {
 
     return res;
 }
-
-
 
 BOOL isUnwantedClass(const char *className) {
     for (size_t i = 0; i < sizeof(unwantedClasses) / sizeof(unwantedClasses[0]);
@@ -263,10 +259,6 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         return CallNextHookEx(NULL, nCode, wParam, lParam);
     }
 
-    // populate g_winVec
-    g_winVec.clear();
-    EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(&g_winVec));
-
     tagKBDLLHOOKSTRUCT *kbd = (tagKBDLLHOOKSTRUCT *)lParam;
     auto currentShortcut = KbdShortcut { getActiveModifiers(), kbd->vkCode };
     auto iter = g_keymaps.find(currentShortcut);
@@ -276,6 +268,11 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     } else {
         printf("flags: %x, key: %lx\n", currentShortcut.flags, currentShortcut.key);
         auto cmdClass = iter->second;
+
+        // populate g_winVec
+        g_winVec.clear();
+        EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(&g_winVec));
+
         runOrRaise(g_winVec, const_cast<char *>(cmdClass.cmdLine.c_str()), cmdClass.className.c_str());
         return 1; // swallow
     }
