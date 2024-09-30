@@ -211,6 +211,52 @@ void raise(HWND hwnd) {
             MAX_ATTEMPTS);
 }
 
+void run(char *cmdline) {
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+
+    ZeroMemory( &si, sizeof(si) );
+    si.cb = sizeof(si);
+    ZeroMemory( &pi, sizeof(pi) );
+
+    // might extract this into a function
+    int ok = CreateProcess(NULL, // use command line
+                  cmdline,
+                  NULL, // Process handle not inheritable
+                  NULL, // Thread handle not inheritable
+                  FALSE, // Set handle inheritance to FALSE
+                  NORMAL_PRIORITY_CLASS, // priority
+                  NULL, // Use parent's environment block
+                  NULL, // Use parent's starting directory
+                  &si,  // Pointer to STARTUPINFO structure
+                  &pi); // Pointer to PROCESS_INFORMATION structure
+
+    if (!ok) {
+        fprintf(stderr, "failed to create process.");
+        printLastError();
+    }
+
+}
+
+void runOrRaise(std::vector<HwndClass>& v, LPCSTR className) {
+    auto currentHwnd = GetForegroundWindow();
+    auto iter = std::find_if(g_winVec.begin(), g_winVec.end(), [className, currentHwnd](const HwndClass &e) {
+        return e.className == className && e.hwnd != currentHwnd;
+    });
+
+    if (iter == g_winVec.end()) {
+        char currentClass[256];
+        GetClassNameA(currentHwnd, currentClass, sizeof(currentClass));
+        if (strcmp(currentClass, className)) {
+            return;
+        } else {
+            run(const_cast<char *>("notepad.exe"));
+    }
+    } else {
+        raise(iter->hwnd);
+    }
+}
+
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode != HC_ACTION) {
         return CallNextHookEx(NULL, nCode, wParam, lParam);
