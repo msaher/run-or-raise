@@ -16,6 +16,11 @@ struct HwndClass {
     std::string className;
 };
 
+struct CmdClass {
+    std::string cmdLine;
+    std::string className;
+};
+
 // might want to use GetWindow() to add raise and lower functionality
 // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindow
 
@@ -24,7 +29,7 @@ const char *unwantedClasses[] = {
     // Application"
 };
 
-std::unordered_map<int, std::string> g_keymaps;
+std::unordered_map<int, CmdClass> g_keymaps;
 std::vector<HwndClass> g_winVec;
 
 
@@ -232,13 +237,13 @@ void run(char *cmdline) {
                   &pi); // Pointer to PROCESS_INFORMATION structure
 
     if (!ok) {
-        fprintf(stderr, "failed to create process.");
+        fprintf(stderr, "failed to create process %s", cmdline);
         printLastError();
     }
 
 }
 
-void runOrRaise(std::vector<HwndClass>& v, LPCSTR className) {
+void runOrRaise(std::vector<HwndClass>& v, LPSTR cmdLine, LPCSTR className) {
     auto currentHwnd = GetForegroundWindow();
     auto iter = std::find_if(g_winVec.begin(), g_winVec.end(), [className, currentHwnd](const HwndClass &e) {
         return e.className == className && e.hwnd != currentHwnd;
@@ -250,7 +255,7 @@ void runOrRaise(std::vector<HwndClass>& v, LPCSTR className) {
         if (strcmp(currentClass, className) == 0) {
             return;
         } else {
-            run(const_cast<char *>("notepad.exe"));
+            run(cmdLine);
     }
     } else {
         raise(iter->hwnd);
@@ -278,7 +283,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (iter == g_keymaps.end()) {
         return CallNextHookEx(NULL, nCode, wParam, lParam);
     } else {
-        runOrRaise(g_winVec, iter->second.c_str());
+        runOrRaise(g_winVec, const_cast<char *>(iter->second.cmdLine.c_str()), iter->second.className.c_str());
         return 1; // swallow
     }
 
@@ -302,7 +307,8 @@ void messageLoop() {
 
 int main() {
     EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(&g_winVec));
-    g_keymaps[VK_F9] = "Notepad"; // alacritty
+    // g_keymaps[VK_F9] = CmdClass {"notepad.exe", "Notepad"}; // notepad
+    g_keymaps[VK_F9] = CmdClass {"wt.exe", "CASCADIA_HOSTING_WINDOW_CLASS"}; // windows terminal
 
     printf("initial windows:\n");
     for (auto &item : g_winVec) {
@@ -310,13 +316,6 @@ int main() {
     }
 
     messageLoop();
-
-    // I press button
-    // windows get populated in vector
-    // I search for first window class that has this
-    // focus on it
-    // If not same then go to next won
-    //
 
     return 0;
 }
