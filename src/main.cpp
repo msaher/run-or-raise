@@ -23,6 +23,12 @@ struct CmdClass {
 
 // might want to use GetWindow() to add raise and lower functionality
 // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindow
+enum KbdModifier {
+    NONE = 0,
+    CTRL = 1 << 0,
+    SHIFT = 1 << 1,
+    ALT = 1 << 2,
+};
 
 const char *unwantedClasses[] = {
     "Windows.UI.Core.CoreWindow", // to get rid of "Microsoft Text Input
