@@ -226,7 +226,7 @@ void run(char *cmdLine) {
                   &pi); // Pointer to PROCESS_INFORMATION structure
 
     if (!ok) {
-        fprintf(stderr, "failed to create process %s", cmdline);
+        fprintf(stderr, "failed to create process %s", cmdLine);
         printLastError();
     }
 
