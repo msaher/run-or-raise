@@ -216,7 +216,7 @@ void raise(HWND hwnd) {
             MAX_ATTEMPTS);
 }
 
-void run(char *cmdline) {
+void run(char *cmdLine) {
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
 
@@ -226,7 +226,7 @@ void run(char *cmdline) {
 
     // might extract this into a function
     int ok = CreateProcess(NULL, // use command line
-                  cmdline,
+                  cmdLine,
                   NULL, // Process handle not inheritable
                   NULL, // Thread handle not inheritable
                   FALSE, // Set handle inheritance to FALSE
