@@ -149,8 +149,6 @@ BOOL isActualWindow(HWND hwnd) {
 BOOL CALLBACK PopulateWinVec(HWND hwnd, LPARAM lParam) {
     if (isActualWindow(hwnd)) {
         auto v = reinterpret_cast<std::vector<HwndClass> *>(lParam);
-
-        // TODO: might want to avoid copying here
         char className[256];
         GetClassNameA(hwnd, className, sizeof(className));
 
