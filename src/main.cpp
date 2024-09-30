@@ -247,7 +247,7 @@ void runOrRaise(std::vector<HwndClass>& v, LPCSTR className) {
     if (iter == g_winVec.end()) {
         char currentClass[256];
         GetClassNameA(currentHwnd, currentClass, sizeof(currentClass));
-        if (strcmp(currentClass, className)) {
+        if (strcmp(currentClass, className) == 0) {
             return;
         } else {
             run(const_cast<char *>("notepad.exe"));
