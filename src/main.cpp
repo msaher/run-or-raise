@@ -122,15 +122,6 @@ BOOL CALLBACK PopulateWinVec(HWND hwnd, LPARAM lParam) {
 // After a lot of trial and errors I found out that retrying is reliable
 void raise(HWND hwnd) {
 
-    if (hwnd == NULL) {
-        hwnd = FindWindow("MozillaWindowClass", NULL);
-    }
-
-    if (hwnd == NULL) {
-        fprintf(stderr, "Failed to find Firefox window handle\n");
-        return;
-    }
-
     DWORD currentThreadId = GetCurrentThreadId();
     DWORD firefoxThreadId = GetWindowThreadProcessId(hwnd, NULL);
 
