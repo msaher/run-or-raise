@@ -6,6 +6,7 @@
 #include <vector>
 #include <windows.h>
 #include <winuser.h>
+#include <unordered_map>
 
 #define MAX_ATTEMPTS 5
 #define ATTEMPT_DELAY 100 // milliseconds
@@ -22,6 +23,10 @@ const char *unwantedClasses[] = {
     "Windows.UI.Core.CoreWindow", // to get rid of "Microsoft Text Input
     // Application"
 };
+
+std::unordered_map<int, std::string> g_keymaps;
+std::vector<HwndClass> g_winVec;
+
 
 BOOL isUnwantedClass(const char *className) {
     for (size_t i = 0; i < sizeof(unwantedClasses) / sizeof(unwantedClasses[0]);
@@ -207,22 +212,30 @@ void raise(HWND hwnd) {
 }
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
-    if (nCode < 0) {
+    if (nCode != HC_ACTION) {
         return CallNextHookEx(NULL, nCode, wParam, lParam);
     }
 
     // check for WM_KEYDOWN or WM_SYSKEYDOWN only, to avoid duplicate prints on
     // key release
     BOOL keyDown = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
-    if (nCode == HC_ACTION && keyDown) {
-        tagKBDLLHOOKSTRUCT *kbd = (tagKBDLLHOOKSTRUCT *)lParam;
-        if (kbd->vkCode == VK_F9) {
-            raise(NULL);
-            return 1; // swallow shortcut
-        }
+    if (!keyDown) {
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
     }
 
-    return CallNextHookEx(NULL, nCode, wParam, lParam);
+    // populate g_winVec
+    g_winVec.clear();
+    EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(&g_winVec));
+
+    tagKBDLLHOOKSTRUCT *kbd = (tagKBDLLHOOKSTRUCT *)lParam;
+    auto iter = g_keymaps.find(kbd->vkCode);
+    if (iter == g_keymaps.end()) {
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
+    } else {
+        runOrRaise(g_winVec, iter->second.c_str());
+        return 1; // swallow
+    }
+
 }
 
 void messageLoop() {
@@ -241,41 +254,16 @@ void messageLoop() {
     UnhookWindowsHookEx(hook);
 }
 
-void runOrRaise(std::vector<HwndClass> &v, LPCSTR className) {
-    auto currentHwnd = GetForegroundWindow();
-    auto iter = std::find_if(v.begin(), v.end(), [className](const HwndClass &e) {
-        return e.className == className && e.hwnd != currentHwnd;
-    });
-
-    if (iter == v.end()) {
-        //
-    } else {
-        raise(iter->hwnd)
-    }
-
-}
-
 int main() {
-
-    auto winVec = std::make_unique<std::vector<HwndClass>>();
-    EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(winVec.get()));
+    EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(&g_winVec));
+    g_keymaps[VK_F9] = "Notepad"; // alacritty
 
     printf("initial windows:\n");
-    for (auto &item : *winVec) {
+    for (auto &item : g_winVec) {
         printf("Handle: %p, class: %s\n", item.hwnd, item.className.c_str());
     }
 
-    while (true) {
-
-        printf("List of windows:\n");
-        for (size_t i = 0; i < winVec->size(); i++) {
-            printf("n: %lld, Handle: %p, class: %s\n", i, (*winVec)[i].hwnd,
-                   (*winVec)[i].className.c_str());
-        }
-
-        printf("\nSleeping...");
-        Sleep(1000);
-    }
+    messageLoop();
 
     // I press button
     // windows get populated in vector
