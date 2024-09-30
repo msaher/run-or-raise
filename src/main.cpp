@@ -56,6 +56,7 @@ const char *unwantedClasses[] = {
 
 std::unordered_map<KbdShortcut, CmdClass> g_keymaps;
 std::vector<HwndClass> g_winVec;
+HHOOK g_hook;
 
 BYTE getActiveModifiers() {
     BYTE res = 0;
@@ -278,34 +279,33 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
 }
 
-void messageLoop() {
-    HHOOK hook = SetWindowsHookExA(WH_KEYBOARD_LL, LowLevelKeyboardProc, NULL, 0);
-    if (hook == NULL) {
-        fprintf(stderr, "failed to set hook: %ld", GetLastError());
-        return;
+// NOTE: this runs on a seperate thread
+BOOL WINAPI handlerRoutine(DWORD dwCtrlType) {
+    if (dwCtrlType == CTRL_C_EVENT || dwCtrlType == CTRL_BREAK_EVENT) {
+        UnhookWindowsHookEx(g_hook);
     }
+
+    // pass to next handler
+    return FALSE;
+}
+
+int main() {
+    g_keymaps[KbdShortcut {NONE, VK_F1}] = CmdClass {"wt.exe", "CASCADIA_HOSTING_WINDOW_CLASS"};
+    g_keymaps[KbdShortcut {NONE, VK_F2}] = CmdClass {"firefox.exe", "MozillaWindowClass"};
+
+    g_hook = SetWindowsHookExA(WH_KEYBOARD_LL, LowLevelKeyboardProc, NULL, 0);
+    if (g_hook == NULL) {
+        fprintf(stderr, "failed to set g_hook: %ld", GetLastError());
+        return 1;
+    }
+
+    SetConsoleCtrlHandler(handlerRoutine, TRUE);
 
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-
-    UnhookWindowsHookEx(hook);
-}
-
-int main() {
-    EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(&g_winVec));
-    // g_keymaps[VK_F9] = CmdClass {"notepad.exe", "Notepad"}; // notepad
-    auto shortcut = KbdShortcut {CTRL, VK_F9};
-    g_keymaps[shortcut] = CmdClass {"wt.exe", "CASCADIA_HOSTING_WINDOW_CLASS"}; // windows terminal
-
-    printf("initial windows:\n");
-    for (auto &item : g_winVec) {
-        printf("Handle: %p, class: %s\n", item.hwnd, item.className.c_str());
-    }
-
-    messageLoop();
 
     return 0;
 }
