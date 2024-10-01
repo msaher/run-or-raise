@@ -358,7 +358,20 @@ int parseShortcut(char *str, KbdShortcut *kbd) {
     return 0;
 }
 
+void showHelp(const char *name) {
+    const char *help = "%s\n\n"
+        "--key [ctr|shift|alt]+KEY CMD WINDOWCLASS\n"
+        "\tListen to KEY to run CMD or raise WINDOWCLASS\n"
+        "--help show this help message\n";
+    printf(help, name);
+}
+
 int main(int argc, char *argv[]) {
+
+    if (argc == 1) {
+        showHelp(*argv);
+        return 0;
+    }
 
     char *arg = argv[0];
     if (arg[0] != '-' && argc == 3) {
@@ -391,11 +404,7 @@ int main(int argc, char *argv[]) {
 
             i += 4;
         } else if (strequal(argv[i], "--help")) {
-            const char *help = "%s\n"
-                "--key [ctr|shift|alt]+KEY CMD WINDOWCLASS\n"
-                "\tListen to KEY to run CMD or raise WINDOWCLASS\n"
-                "--help show this help message\n";
-            printf(help, argv[0]);
+            showHelp(argv[0]);
             return 0;
         } else {
             printf("Unknown argument %s\n", argv[i]);
