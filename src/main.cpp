@@ -11,7 +11,7 @@
 #define strequal(x, y) strcmp(x, y) == 0
 
 #define MAX_ATTEMPTS 5
-#define ATTEMPT_DELAY 100 // milliseconds
+#define ATTEMPT_DELAY 50 // milliseconds
 
 // TODO: disable logging or turn it on with -v
 
