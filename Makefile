@@ -1,12 +1,16 @@
 CXX = x86_64-w64-mingw32-g++
-CXXFLAGS = -Wall -Wextra -I ./src
+CXXFLAGS = -Wall -Wextra  -static-libgcc -static-libstdc++ -I ./src
+RELEASE_FLAGS = -O3
 
-.PHONY: build
-build: out/run-or-raise.exe
-	cp out/run-or-raise.exe ~/desk/run-or-raise/run-or-raise.exe
+# Default to debug mode
+build_mode ?= debug
+
+ifeq ($(build_mode), release)
+    CXXFLAGS += $(RELEASE_FLAGS)
+endif
 
 out/run-or-raise.exe: src/main.cpp
-	$(CXX) $(CXXFLAGS) -static-libgcc -static-libstdc++ src/main.cpp -o out/run-or-raise.exe
+	$(CXX) $(CXXFLAGS) "$<" -o "$@"
 
 .PHONY: clean
 clean:
