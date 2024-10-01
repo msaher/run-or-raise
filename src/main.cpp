@@ -13,8 +13,6 @@
 #define MAX_ATTEMPTS 5
 #define ATTEMPT_DELAY 50 // milliseconds
 
-// TODO: disable logging or turn it on with -v
-
 struct HwndClass {
     HWND hwnd;
     std::string className;
