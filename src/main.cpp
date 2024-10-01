@@ -14,7 +14,6 @@
 #define ATTEMPT_DELAY 100 // milliseconds
 
 // TODO: disable logging or turn it on with -v
-// TODO: add --help
 
 struct HwndClass {
   HWND hwnd;
