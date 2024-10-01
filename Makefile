@@ -1,5 +1,5 @@
 CXX = x86_64-w64-mingw32-g++
-CXXFLAGS = -Wall -I ./src
+CXXFLAGS = -Wall -Wextra -I ./src
 
 .PHONY: build
 build: out/run-or-raise.exe

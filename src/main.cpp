@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <ctype.h>
 #include <memory>
 #include <stdio.h>
 #include <string.h>
@@ -7,7 +8,6 @@
 #include <vector>
 #include <windows.h>
 #include <winuser.h>
-#include <ctype.h>
 #define strequal(x, y) strcmp(x, y) == 0
 
 #define MAX_ATTEMPTS 5
@@ -198,7 +198,8 @@ void raise(HWND hwnd) {
         }
     }
 
-    fprintf(stderr, "Error: Failed to set focus to window after %d attempts\n", MAX_ATTEMPTS);
+    fprintf(stderr, "Error: Failed to set focus to window after %d attempts\n",
+            MAX_ATTEMPTS);
 }
 
 void run(char *cmdLine) {
@@ -229,13 +230,12 @@ void run(char *cmdLine) {
 
 void runOrRaise(std::vector<HwndClass> &v, LPSTR cmdLine, LPCSTR className) {
     auto currentHwnd = GetForegroundWindow();
-    auto iter =
-        std::find_if(g_winVec.begin(), g_winVec.end(),
-                     [className, currentHwnd](const HwndClass &e) {
-                     return e.className == className && e.hwnd != currentHwnd;
-                     });
+    auto iter = std::find_if(
+        v.begin(), v.end(), [className, currentHwnd](const HwndClass &e) {
+            return e.className == className && e.hwnd != currentHwnd;
+        });
 
-    if (iter == g_winVec.end()) {
+    if (iter == v.end()) {
         char currentClass[256];
         GetClassNameA(currentHwnd, currentClass, sizeof(currentClass));
         if (strcmp(currentClass, className) == 0) {
@@ -298,7 +298,7 @@ int parseShortcut(char *str, KbdShortcut *kbd) {
     const SHORT A_VK = 0x41;
     const SHORT ZERO_VK = 0x30;
 
-    auto endStr = str+strlen(str);
+    auto endStr = str + strlen(str);
     char *token = str;
     char *tokenEnd = strpbrk(str, "+");
     kbd->key = 0;
@@ -318,7 +318,7 @@ int parseShortcut(char *str, KbdShortcut *kbd) {
             kbd->flags |= SHIFT;
         } else if (strequal(token, "alt")) {
             kbd->flags |= ALT;
-        } else if(strequal(token, "ctrl")) {
+        } else if (strequal(token, "ctrl")) {
             kbd->flags |= CTRL;
         }
 
@@ -332,11 +332,11 @@ int parseShortcut(char *str, KbdShortcut *kbd) {
             }
         } else if (tokenLen == 2) {
             if (toupper(token[0]) == 'F' && isdigit(token[1])) {
-                BYTE num = atoi(token+1);
+                BYTE num = atoi(token + 1);
                 if (num == 0) { // F0 is not a key
                     return INVALID_SHORTCUT;
                 } else {
-                    kbd->key = VK_F1-1 + atoi(token+1);
+                    kbd->key = VK_F1 - 1 + atoi(token + 1);
                 }
             }
         } else {
@@ -382,12 +382,12 @@ int main(int argc, char *argv[]) {
             strcpy(shortcut, argv[i + 1]);
             auto err = parseShortcut(shortcut, &kbd);
             if (err == INVALID_SHORTCUT) {
-                fprintf(stderr, "Invalid shortcut: %s\n", argv[i+1]);
+                fprintf(stderr, "Invalid shortcut: %s\n", argv[i + 1]);
                 return 1;
             }
             const char *cmd = argv[i + 2];
             const char *className = argv[i + 3];
-            g_keymaps[kbd] = CmdClass {cmd, className};
+            g_keymaps[kbd] = CmdClass{cmd, className};
 
             i += 4;
         } else if (strequal(argv[i], "--help")) {
