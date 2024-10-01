@@ -196,13 +196,11 @@ void raise(HWND hwnd) {
         // wait and check focus
         Sleep(ATTEMPT_DELAY);
         if (GetForegroundWindow() == hwnd) {
-            printf("Successfully set focus to window on attempt %d\n", attempt + 1);
             return;
         }
     }
 
-    fprintf(stderr, "Error: Failed to set focus to window after %d attempts\n",
-            MAX_ATTEMPTS);
+    fprintf(stderr, "Error: Failed to set focus to window after %d attempts\n", MAX_ATTEMPTS);
 }
 
 void run(char *cmdLine) {
