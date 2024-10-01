@@ -386,6 +386,13 @@ int main(int argc, char *argv[]) {
             g_keymaps[kbd] = CmdClass {cmd, className};
 
             i += 4;
+        } else if (strequal(argv[i], "--help")) {
+            const char *help = "%s\n"
+                "--key [ctr|shift|alt]+KEY CMD WINDOWCLASS\n"
+                "\tListen to KEY to run CMD or raise WINDOWCLASS\n"
+                "--help show this help message\n";
+            printf(help, argv[0]);
+            return 0;
         }
     }
 
