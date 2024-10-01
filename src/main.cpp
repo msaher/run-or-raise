@@ -364,8 +364,17 @@ int parseShortcut(char *str, KbdShortcut *kbd) {
 
 int main(int argc, char *argv[]) {
 
-    // avoid using GNU's getopt for portability
+    char *arg = argv[0];
+    if (arg[0] != '-' && argc == 3) {
+        auto cmd = argv[1];
+        auto className = argv[2];
+        EnumWindows(PopulateWinVec, reinterpret_cast<LPARAM>(&g_winVec));
+        runOrRaise(g_winVec, cmd, className);
+        return 0;
+    }
+
     int i = 1; // dont care about invokation name
+    // avoid using GNU's getopt for portability
     while (i < argc) {
         if (strequal(argv[i], "--key")) {
             if (i + 3 >= argc) {
@@ -392,6 +401,9 @@ int main(int argc, char *argv[]) {
                 "--help show this help message\n";
             printf(help, argv[0]);
             return 0;
+        } else {
+            printf("Unknown argument %s\n", argv[i]);
+            return 1;
         }
     }
 
