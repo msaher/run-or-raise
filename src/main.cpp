@@ -223,7 +223,7 @@ void run(char *cmdLine) {
                            &pi); // Pointer to PROCESS_INFORMATION structure
 
     if (!ok) {
-        fprintf(stderr, "failed to create process %s", cmdLine);
+        fprintf(stderr, "failed to create process %s\n", cmdLine);
         printLastError();
     }
 }
@@ -359,10 +359,10 @@ int parseShortcut(char *str, KbdShortcut *kbd) {
 }
 
 void showHelp(const char *name) {
-    const char *help = "%s\n\n"
+    const char *help = "Usage: %s [options] CMD WINDOWCLASS\n\n"
         "--key [ctr|shift|alt]+KEY CMD WINDOWCLASS\n"
-        "\tListen to KEY to run CMD or raise WINDOWCLASS\n"
-        "--help show this help message\n";
+        "\tListen to KEY to run CMD or raise WINDOWCLASS. Can be passed multiple times.\n"
+        "--help show this help message\n\n";
     printf(help, name);
 }
 
